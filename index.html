@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSON to Excel Converter with exceljs</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 50px;
+      }
+      .upload-btn {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      .upload-btn:hover {
+        background-color: #45a049;
+      }
+      #error {
+        color: red;
+      }
+      #success {
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Upload JSON to Convert to Excel</h1>
+    <input type="file" id="jsonFile" accept=".json" />
+    <button class="upload-btn" onclick="convertToExcel()">
+      Upload and Convert
+    </button>
+    <p id="error"></p>
+    <p id="success"></p>
+
+    <!-- Hypothetical CDN for exceljs (you need to bundle or host this yourself) -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script>
+      // Inside the convertToExcel function, after creating the workbook and worksheet
+      function convertToExcel() {
+        const fileInput = document.getElementById("jsonFile");
+        const errorP = document.getElementById("error");
+        const successP = document.getElementById("success");
+
+        if (!fileInput.files[0]) {
+          errorP.textContent = "Please select a JSON file!";
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        // Inside the convertToExcel function
+        reader.onload = async function (e) {
+          try {
+            const jsonData = JSON.parse(e.target.result);
+
+            if (
+              !jsonData.date ||
+              !jsonData.teacher ||
+              !jsonData.maxScores ||
+              !jsonData.students
+            ) {
+              throw new Error(
+                "Invalid JSON format! Expected fields: date, teacher, maxScores, students"
+              );
+            }
+
+            const tasks = Object.keys(jsonData.maxScores).sort();
+            const numTasks = tasks.length;
+            const totalColumns = 2 + numTasks + 3;
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet1");
+
+            // Set column widths for the table
+            const columns = [
+              { width: 10 }, // № (70px)
+              { width: 28.5 }, // Name (200px)
+            ];
+            for (let i = 0; i < numTasks; i++) {
+              columns.push({ width: 10 }); // Task columns (70px)
+            }
+            columns.push({ width: 10 }); // Jami ball (70px)
+            columns.push({ width: 10 }); // Jami (70px)
+            columns.push({ width: 10 }); // Foizda (70px)
+            worksheet.columns = columns;
+
+            // Add the top header row
+            const headerText =
+              "300-sonli Davlat Ixtisoslashtirilgan umumta'lim maktabi BSB mezoni va tahlili\n\n11-B sinf o'quvchilarining Informatika va AT fanidan 2024-2025-o'quv yili 3- BSB topshiriq ishlarining mezon asosida tekshirilgan HISOBOT NATIJALARI";
+            const topHeaderRow = worksheet.addRow([headerText]);
+            topHeaderRow.height = 200;
+
+            worksheet.mergeCells(1, 1, 1, totalColumns);
+            const topHeaderCell = worksheet.getCell("A1");
+            topHeaderCell.alignment = {
+              horizontal: "center",
+              vertical: "middle",
+              wrapText: true,
+            };
+            topHeaderCell.font = { size: 20, bold: true };
+            topHeaderCell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "DDEBF6" }, // Light blue background
+            };
+            topHeaderCell.border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+
+            // Calculate participants and non-participants
+            const totalStudents = jsonData.students.length;
+            const disqualifiedStudents = jsonData.students.filter(
+              (student) => student.disqualified
+            ).length;
+            const participants = totalStudents - disqualifiedStudents;
+            const nonParticipants = disqualifiedStudents;
+
+            // Add Qatnashdi row
+            const qatnashdiRow = worksheet.addRow(["Qatnashdi", participants]);
+            qatnashdiRow.height = 20;
+            worksheet.mergeCells(2, 1, 2, totalColumns - 1); // Merge all but the last column for "Qatnashdi"
+            worksheet.getCell("A2").alignment = {
+              horizontal: "left",
+              vertical: "middle",
+            };
+            worksheet.getCell("A2").font = { size: 12, bold: true };
+            worksheet.getCell("A2").border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+            const qatnashdiValueCell = worksheet.getCell(2, totalColumns);
+            qatnashdiValueCell.value = participants;
+            qatnashdiValueCell.alignment = {
+              horizontal: "center",
+              vertical: "middle",
+            };
+            qatnashdiValueCell.font = { size: 12, bold: true };
+            qatnashdiValueCell.border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+
+            // Add Qatnashmadi row
+            const qatnashmadiRow = worksheet.addRow([
+              "Qatnashmadi",
+              nonParticipants,
+            ]);
+            qatnashmadiRow.height = 20;
+            worksheet.mergeCells(3, 1, 3, totalColumns - 1); // Merge all but the last column for "Qatnashmadi"
+            worksheet.getCell("A3").alignment = {
+              horizontal: "left",
+              vertical: "middle",
+            };
+            worksheet.getCell("A3").font = { size: 12, bold: true };
+            worksheet.getCell("A3").border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+            const qatnashmadiValueCell = worksheet.getCell(3, totalColumns);
+            qatnashmadiValueCell.value = nonParticipants;
+            qatnashmadiValueCell.alignment = {
+              horizontal: "center",
+              vertical: "middle",
+            };
+            qatnashmadiValueCell.font = { size: 12, bold: true };
+            qatnashmadiValueCell.border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+
+            // Add the merged row for Sana, II-guruh, and Fan o'qituvchisi (moved after Qatnashdi/Qatnashmadi)
+            const infoRow = worksheet.addRow([
+              `Sana: ${jsonData.date}    II-guruh    Fan o'qituvchisi: ${jsonData.teacher}`,
+            ]);
+            infoRow.height = 20;
+            worksheet.mergeCells(4, 1, 4, totalColumns);
+            const infoCell = worksheet.getCell("A4");
+            infoCell.alignment = {
+              horizontal: "center",
+              vertical: "middle",
+              wrapText: true,
+            };
+            infoCell.font = { size: 12, bold: true };
+            infoCell.border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+
+            // Add an empty row for spacing before the table
+            worksheet.addRow(Array(totalColumns).fill(""));
+
+            // Table header row
+            const headerRow = ["№", "O’quvchining familyasi,ismi"];
+            tasks.forEach((taskKey, index) => {
+              const taskNumber = index + 1;
+              const maxScore = jsonData.maxScores[taskKey];
+              headerRow.push(`${taskNumber}-topshiriq ${maxScore} ball`);
+            });
+            headerRow.push("Jami ball", "Jami", "Foizda");
+            const headerRowObj = worksheet.addRow(headerRow);
+            headerRowObj.height = 60;
+
+            headerRowObj.eachCell((cell, colNumber) => {
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF000000" } },
+                left: { style: "thin", color: { argb: "FF000000" } },
+                bottom: { style: "thin", color: { argb: "FF000000" } },
+                right: { style: "thin", color: { argb: "FF000000" } },
+              };
+              cell.alignment = {
+                horizontal: "center",
+                vertical: "middle",
+                wrapText: true,
+              };
+            });
+
+            const maxTotalScore = tasks.reduce(
+              (sum, taskKey) => sum + jsonData.maxScores[taskKey],
+              0
+            );
+
+            jsonData.students.forEach((student, index) => {
+              const rowData = [student.id, student.name];
+              tasks.forEach((taskKey) => {
+                rowData.push(student.scores[taskKey] || 0);
+              });
+              rowData.push("", "", "");
+              const row = worksheet.addRow(rowData);
+              row.height = 20;
+
+              row.eachCell((cell) => {
+                cell.border = {
+                  top: { style: "thin", color: { argb: "FF000000" } },
+                  left: { style: "thin", color: { argb: "FF000000" } },
+                  bottom: { style: "thin", color: { argb: "FF000000" } },
+                  right: { style: "thin", color: { argb: "FF000000" } },
+                };
+                cell.alignment = {
+                  horizontal: "center",
+                  vertical: "middle",
+                  wrapText: true,
+                };
+              });
+
+              if (student.disqualified) {
+                const startCol = 3;
+                const endCol = startCol + numTasks + 2;
+                worksheet.mergeCells(row.number, startCol, row.number, endCol);
+                const mergedCell = worksheet.getCell(row.number, startCol);
+                mergedCell.value = "DQ";
+                mergedCell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFFFFF00" },
+                };
+                mergedCell.font = { color: { argb: "FF000000" } };
+                mergedCell.alignment = {
+                  horizontal: "center",
+                  vertical: "middle",
+                };
+              } else {
+                const startTaskCol = 3;
+                const endTaskCol = startTaskCol + numTasks - 1;
+                const jamiBallCol = endTaskCol + 1;
+                const jamiCol = jamiBallCol + 1;
+                const foizdaCol = jamiCol + 1;
+
+                row.getCell(jamiBallCol).value = {
+                  formula: `SUM(${excelColumnName(startTaskCol)}${
+                    row.number
+                  }:${excelColumnName(endTaskCol)}${row.number})`,
+                };
+                row.getCell(jamiCol).value = maxTotalScore;
+                row.getCell(foizdaCol).value = {
+                  formula: `${excelColumnName(jamiBallCol)}${
+                    row.number
+                  }/${excelColumnName(jamiCol)}${row.number}`,
+                };
+                row.getCell(foizdaCol).numFmt = "0%";
+              }
+            });
+
+            const avgRowData = ["", "O'rtacha ball"];
+            tasks.forEach((taskKey, index) => {
+              const taskCol = 3 + index;
+              const firstStudentRow = 7; // First student row after header (row 6)
+              const lastStudentRow = jsonData.students.length + 6; // Last student row
+              avgRowData.push({
+                formula: `AVERAGEIF(${excelColumnName(
+                  2
+                )}${firstStudentRow}:${excelColumnName(
+                  2
+                )}${lastStudentRow}, "<>DQ", ${excelColumnName(
+                  taskCol
+                )}${firstStudentRow}:${excelColumnName(
+                  taskCol
+                )}${lastStudentRow})`,
+              });
+            });
+            avgRowData.push("", "", "");
+            const avgRow = worksheet.addRow(avgRowData);
+            avgRow.height = 20;
+            avgRow.eachCell((cell, colNumber) => {
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF000000" } },
+                left: { style: "thin", color: { argb: "FF000000" } },
+                bottom: { style: "thin", color: { argb: "FF000000" } },
+                right: { style: "thin", color: { argb: "FF000000" } },
+              };
+              cell.alignment = {
+                horizontal: "center",
+                vertical: "middle",
+                wrapText: true,
+              };
+              if (colNumber >= 3 && colNumber < 3 + numTasks) {
+                cell.numFmt = "0.0"; // Show one decimal place for average
+              }
+            });
+
+            // Add mastery percentage row
+            const masteryRowData = ["", "O'zlashtirish foizi"];
+            tasks.forEach((taskKey, index) => {
+              const taskCol = 3 + index;
+              const maxScore = jsonData.maxScores[taskKey];
+              const firstStudentRow = 7;
+              const lastStudentRow = jsonData.students.length + 6;
+              masteryRowData.push({
+                formula: `AVERAGEIF(${excelColumnName(
+                  2
+                )}${firstStudentRow}:${excelColumnName(
+                  2
+                )}${lastStudentRow}, "<>DQ", ${excelColumnName(
+                  taskCol
+                )}${firstStudentRow}:${excelColumnName(
+                  taskCol
+                )}${lastStudentRow})/${maxScore}`,
+              });
+            });
+            masteryRowData.push("", "", "");
+            const masteryRow = worksheet.addRow(masteryRowData);
+            masteryRow.height = 20;
+            masteryRow.eachCell((cell, colNumber) => {
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF000000" } },
+                left: { style: "thin", color: { argb: "FF000000" } },
+                bottom: { style: "thin", color: { argb: "FF000000" } },
+                right: { style: "thin", color: { argb: "FF000000" } },
+              };
+              cell.alignment = {
+                horizontal: "center",
+                vertical: "middle",
+                wrapText: true,
+              };
+              if (colNumber >= 3 && colNumber < 3 + numTasks) {
+                cell.numFmt = "0%"; // Show as percentage
+              }
+            });
+
+            // Adjust the empty row after to account for the new row
+            worksheet.addRow(Array(totalColumns).fill(""));
+
+            // Adjust outer table borders
+            worksheet.getRow(5).eachCell((cell) => {
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF000000" } },
+                left: { style: "thin", color: { argb: "FF000000" } },
+                bottom: { style: "thin", color: { argb: "FF000000" } },
+                right: { style: "thin", color: { argb: "FF000000" } },
+              };
+            });
+            worksheet.getRow(worksheet.rowCount).eachCell((cell) => {
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF000000" } },
+                left: { style: "thin", color: { argb: "FF000000" } },
+                bottom: { style: "thin", color: { argb: "FF000000" } },
+                right: { style: "thin", color: { argb: "FF000000" } },
+              };
+            });
+            worksheet.getColumn(1).eachCell((cell) => {
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF000000" } },
+                left: { style: "thin", color: { argb: "FF000000" } },
+                bottom: { style: "thin", color: { argb: "FF000000" } },
+                right: { style: "thin", color: { argb: "FF000000" } },
+              };
+            });
+            worksheet.getColumn(totalColumns).eachCell((cell) => {
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF000000" } },
+                left: { style: "thin", color: { argb: "FF000000" } },
+                bottom: { style: "thin", color: { argb: "FF000000" } },
+                right: { style: "thin", color: { argb: "FF000000" } },
+              };
+            });
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "student_scores.xlsx";
+            a.click();
+            window.URL.revokeObjectURL(url);
+            successP.textContent = "Excel file generated successfully!";
+          } catch (err) {
+            errorP.textContent = err.message;
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // Helper function to convert column number to Excel column letter
+      function excelColumnName(colNumber) {
+        let columnName = "";
+        while (colNumber > 0) {
+          let remainder = (colNumber - 1) % 26;
+          columnName = String.fromCharCode(65 + remainder) + columnName;
+          colNumber = Math.floor((colNumber - 1) / 26);
+        }
+        return columnName;
+      }
+    </script>
+  </body>
+</html>
