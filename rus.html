@@ -30,7 +30,7 @@
   </head>
   <body>
     <h1>Upload JSON to Convert to Excel</h1>
-    <a href="./rus.html">На русском</a>
+    <a href="./index.html">O'zbekcha</a>
     <input type="file" id="jsonFile" accept=".json" />
     <button class="upload-btn" onclick="convertToExcel()">
       Upload and Convert
@@ -91,13 +91,12 @@
             }
             columns.push({ width: 10 }); // Jami ball
             columns.push({ width: 10 }); // Jami
-            columns.push({ width: 10 }); // Foizda
+            columns.push({ width: 12 }); // Foizda
             columns.push({ width: 10 }); // Jami foiz
             worksheet.columns = columns;
 
             // Top header row
-            const headerText =
-              "300-sonli Davlat Ixtisoslashtirilgan umumta'lim maktabi BSB mezoni va tahlili\n\n11-B sinf o'quvchilarining Informatika va AT fanidan 2024-2025-o'quv yili 3- BSB topshiriq ishlarining mezon asosida tekshirilgan HISOBOT NATIJALARI";
+            const headerText = `Государственное специализированное общеобразовательная школа №300 критерии и анализ СОЧ №3 \n Отчет учащихся 7 В класса по технологии за 2024-2025 гг. четверть 3.\n РЕЗУЛЬТАТЫ ОТЧЕТА.`;
             const topHeaderRow = worksheet.addRow([headerText]);
             topHeaderRow.height = 200;
             worksheet.mergeCells(1, 1, 1, totalColumns);
@@ -129,7 +128,10 @@
             const nonParticipants = disqualifiedStudents;
 
             // Qatnashdi row
-            const qatnashdiRow = worksheet.addRow(["Qatnashdi", participants]);
+            const qatnashdiRow = worksheet.addRow([
+              "Присутствовали",
+              participants,
+            ]);
             qatnashdiRow.height = 20;
             worksheet.mergeCells(2, 1, 2, totalColumns - 1);
             worksheet.getCell("A2").alignment = {
@@ -159,7 +161,7 @@
 
             // Qatnashmadi row
             const qatnashmadiRow = worksheet.addRow([
-              "Qatnashmadi",
+              "Отсутствовали",
               nonParticipants,
             ]);
             qatnashmadiRow.height = 20;
@@ -191,7 +193,7 @@
 
             // Info row
             const infoRow = worksheet.addRow([
-              `Sana: ${jsonData.date}    II-guruh    Fan o'qituvchisi: ${jsonData.teacher}`,
+              `Дата: ${jsonData.date}        учитель по предмету: ${jsonData.teacher}`,
             ]);
             infoRow.height = 20;
             worksheet.mergeCells(4, 1, 4, totalColumns);
@@ -213,13 +215,28 @@
             worksheet.addRow(Array(totalColumns).fill(""));
 
             // Table header row
-            const headerRow = ["№", "O’quvchining familyasi,ismi"];
+            const headerRow = ["№", "Фамилия имя ученика"];
             tasks.forEach((taskKey, index) => {
-              const taskNumber = index + 1;
+              //   const taskNumber = index + 1;
+              //   const maxScore = jsonData.maxScores[taskKey];
+              //   headerRow.push(`${taskNumber}-задание ${maxScore} балл`);
               const maxScore = jsonData.maxScores[taskKey];
-              headerRow.push(`${taskNumber}-topshiriq ${maxScore} ball`);
+              if (index < 3) {
+                // Первые три задачи как подзадачи "1 задание (1)", "1 задание (2)", "1 задание (3)"
+                const subtaskNumber = index + 1;
+                headerRow.push(`1 задание (${subtaskNumber}) ${maxScore} балл`);
+              } else {
+                // Остальные задачи нумеруются с "2 задание"
+                const taskNumber = index - 1; // -1 потому что первые 3 задачи объединены в "1 задание"
+                headerRow.push(`${taskNumber} задание ${maxScore} балл`);
+              }
             });
-            headerRow.push("Jami ball", "Jami", "Foizda", "Jami foiz");
+            headerRow.push(
+              "Итог",
+              "Общий балл",
+              "В процентах",
+              "Общий процент"
+            );
             const headerRowObj = worksheet.addRow(headerRow);
             headerRowObj.height = 60;
 
@@ -235,7 +252,10 @@
                 vertical: "middle",
                 wrapText: true,
               };
-              if (colNumber === jamiBallColNum || colNumber === jamiFoizColNum) {
+              if (
+                colNumber === jamiBallColNum ||
+                colNumber === jamiFoizColNum
+              ) {
                 cell.fill = {
                   type: "pattern",
                   pattern: "solid",
@@ -270,7 +290,10 @@
                   vertical: "middle",
                   wrapText: true,
                 };
-                if (colNumber === jamiBallColNum || colNumber === jamiFoizColNum) {
+                if (
+                  colNumber === jamiBallColNum ||
+                  colNumber === jamiFoizColNum
+                ) {
                   cell.fill = {
                     type: "pattern",
                     pattern: "solid",
@@ -317,7 +340,7 @@
             });
 
             // Average scores row
-            const avgRowData = ["", "O'rtacha ball"];
+            const avgRowData = ["", "Средний балл"];
             tasks.forEach((taskKey, index) => {
               const taskCol = 3 + index;
               const firstStudentRow = 7;
@@ -355,7 +378,10 @@
               if (colNumber >= 3 && colNumber < 3 + numTasks) {
                 cell.numFmt = "0.0";
               }
-              if (colNumber === jamiBallColNum || colNumber === jamiFoizColNum) {
+              if (
+                colNumber === jamiBallColNum ||
+                colNumber === jamiFoizColNum
+              ) {
                 cell.fill = {
                   type: "pattern",
                   pattern: "solid",
@@ -365,7 +391,7 @@
             });
 
             // Mastery percentage row
-            const masteryRowData = ["", "O'zlashtirish foizi"];
+            const masteryRowData = ["", "Процент усвоения:"];
             tasks.forEach((taskKey, index) => {
               const taskCol = 3 + index;
               const maxScore = jsonData.maxScores[taskKey];
@@ -404,7 +430,10 @@
               if (colNumber >= 3 && colNumber < 3 + numTasks) {
                 cell.numFmt = "0%";
               }
-              if (colNumber === jamiBallColNum || colNumber === jamiFoizColNum) {
+              if (
+                colNumber === jamiBallColNum ||
+                colNumber === jamiFoizColNum
+              ) {
                 cell.fill = {
                   type: "pattern",
                   pattern: "solid",
@@ -457,7 +486,9 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "student_scores.xlsx";
+            // Получаем имя файла и заменяем .json на .xlsx
+            const fileName = file.name.replace(/\.json$/, ".xlsx");
+            a.download = fileName;
             a.click();
             window.URL.revokeObjectURL(url);
             successP.textContent = "Excel file generated successfully!";
